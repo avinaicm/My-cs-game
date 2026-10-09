@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web CS 1.6</title>
+    <style>
+        body { margin: 0; background-color: black; color: white; text-align: center; font-family: sans-serif; }
+        canvas { width: 100vw; height: 100vh; display: block; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div id="loading">Downloading Game Files from Google Drive... Please wait...</div>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" style="display:none;"></canvas>
+    
+    <!-- Loading Xash3D WebAssembly Engine from Public CDN -->
+    <script src="https://jsdelivr.net"></script>
+    <script>
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments: ['-game', 'cstrike'],
+            print: console.log,
+            printErr: console.error,
+            memoryInitializerPrefixURL: '',
+            preloadPlugins: []
+        };
+        
+        // Direct Download Link created from your Google Drive link
+        const driveDirectLink = 'https://google.com';
+
+        console.log("Fetching game files from Google Drive...");
+        fetch(driveDirectLink)
+            .then(response => {
+                if (!response.ok) throw new Error("Network response was not ok");
+                return response.arrayBuffer();
+            })
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('canvas').style.display = 'block';
+                
+                // Writing the zip file to the virtual Wasm file system
+                Module.FS_createDataFile("/", "cstrike.zip", new Uint8Array(data), true, true, true);
+                console.log("Assets loaded successfully! Launching Counter-Strike...");
+            })
+            .catch(err => {
+                console.error("Error loading files: ", err);
+                document.getElementById('loading').innerText = "Failed to load game files. Please check permissions.";
+            });
+    </script>
+</body>
+</html>
