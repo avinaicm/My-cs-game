@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web Game CS 1.6</title>
+    <style>
+        body { margin: 0; background-color: black; color: white; text-align: center; font-family: sans-serif; }
+        canvas { width: 100vw; height: 100vh; display: block; }
+        #status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div id="status">Loading Game Parts... <span id="progress">0%</span></div>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" style="display:none;"></canvas>
+    
+    <script src="https://jsdelivr.net"></script>
+    <script>
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments: ['-game', 'cstrike'],
+            print: console.log,
+            printErr: console.error,
+            memoryInitializerPrefixURL: '',
+            preloadPlugins: []
+        };
+
+        // Termux split suffixes list (Total 8 parts)
+        const partsSuffixes = ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah'];
+        let loadedChunks = [];
+
+        async function assembleAndLoadGame() {
+            try {
+                for (let i = 0; i < partsSuffixes.length; i++) {
+                    const suffix = partsSuffixes[i];
+                    const fileName = `mygame.zip.part_${suffix}`;
+                    document.getElementById('progress').innerText = `Downloading part ${i + 1}/${partsSuffixes.length}...`;
+                    
+                    const response = await fetch(fileName);
+                    if (!response.ok) throw new Error("Failed to download " + fileName);
+                    
+                    const blob = await response.blob();
+                    loadedChunks.push(blob);
+                }
+
+                document.getElementById('progress').innerText = "Merging game files inside browser memory...";
+                const combinedBlob = new Blob(loadedChunks);
+                const arrayBuffer = await combinedBlob.arrayBuffer();
+
+                document.getElementById('status').style.display = 'none';
+                document.getElementById('canvas').style.display = 'block';
+
+                // Passing final byte array to Wasm filesystem layer
+                Module.FS_createDataFile("/", "cstrike.zip", new Uint8Array(arrayBuffer), true, true, true);
+                console.log("Success! Game loaded from merged parts.");
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Merge Error. Verify if all part_aa, part_ab files exist on GitHub.";
+            }
+        }
+
+        assembleAndLoadGame();
+    </script>
+</body>
+</html>
